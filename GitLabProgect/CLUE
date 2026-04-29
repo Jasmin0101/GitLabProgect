@@ -1,0 +1,22 @@
+MyAwesomeApp/
+│
+├── App/                  # Точка входа в приложение
+│   └── MyAwesomeApp.swift
+│
+├── Models/               # Данные и бизнес-модели
+│   └── User.swift
+│
+├── ViewModels/           # Логика и управление состоянием экранов
+│   └── HomeViewModel.swift
+│
+├── Views/                # Экраны и переиспользуемые UI-компоненты
+│   ├── HomeView.swift    # Главный экран
+│   └── Components/       # Мелкие детали (твои кастомные кнопки, карточки и т.д.)
+│       └── CustomButton.swift
+│
+├── Resources/            # Ассеты, шрифты, локализация
+│   ├── Assets.xcassets
+│   └── Info.plist
+│
+└── Utilities/            # Расширения, хелперы, константы
+    └── Extensions.swift
