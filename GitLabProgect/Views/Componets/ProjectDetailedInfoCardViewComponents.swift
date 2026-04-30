@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ProgectDetailedInfoCardViewComponents: View {
+struct ProjectDetailedInfoCardViewComponents: View {
     let model:ProjectModel
     let languages: [String]
     @State var starsCount: Int
@@ -135,7 +135,7 @@ private struct _AvatarView: View {
 #Preview {
     ZStack {
         Color(.systemGray6).ignoresSafeArea()
-        ProgectDetailedInfoCardViewComponents(
+        ProjectDetailedInfoCardViewComponents(
             model: ProjectModel.mock,
                     languages: ["Swift", "SwiftUI", "Combine", "GraphQL", "Python", "Rust", "C++"],
         )

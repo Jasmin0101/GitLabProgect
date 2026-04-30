@@ -20,3 +20,15 @@ MyAwesomeApp/
 │
 └── Utilities/            # Расширения, хелперы, константы
     └── Extensions.swift
+    
+В SwiftUI (View) - Во Flutter (Widget),Для чего нужен
+VStack -- Column,Выстраивает элементы вертикально.
+HStack -- Row,Выстраивает элементы горизонтально.
+ZStack -- Stack,Накладывает элементы друг на друга (слоями).
+Spacer -- Spacer,"Заполняет пустое пространство, расталкивая соседей."
+Text -- Text,Отображение текста.
+Image -- Image / Icon,Отображение картинок и иконок.
+Button -- ElevatedButton / GestureDetector,Интерактивная кнопка.
+TextField -- TextField,Поле для ввода текста.
+ScrollView -- SingleChildScrollView,Делает контент прокручиваемым.
+List -- ListView,Создает системный список (как в настройках iPhone).
