@@ -2,9 +2,33 @@ import SwiftUI
 
 struct ShortProjectInfoCardViewComponets: View {
     var model: ProjectModel
+    var onLongPress: (() -> Void)? = nil
+    var onPressingChanged: ((Bool) -> Void)? = nil
+    @Environment(\.colorScheme) private var colorScheme
 
 //    let tagName: String
     @State private var isLiked: Bool = false
+    
+    private var darkCardColor: Color {
+        AppTheme.Palette.darkSurface
+    }
+    
+    private var titleColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+    
+    private var subtitleColor: Color {
+        colorScheme == .dark ? .white.opacity(0.78) : .secondary
+    }
+    
+    private var cardBackground: Color {
+        colorScheme == .dark ? darkCardColor : Color(.systemBackground)
+    }
+    
+    private var idleStarBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.1)
+    }
+    
     var body: some View {
         HStack(spacing: 12) {  // Добавил отступ между аватаркой и текстом
             _AvatarView(imageURL: model.avatarUrl, size: 50)
@@ -12,7 +36,8 @@ struct ShortProjectInfoCardViewComponets: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(model.name)
-                        .font(.headline)
+                        .font(.headline).lineLimit(1)
+                        .foregroundColor(titleColor)
                     Spacer()
                     Button(action: {
                         withAnimation(
@@ -32,7 +57,7 @@ struct ShortProjectInfoCardViewComponets: View {
                         .background(
                             isLiked
                                 ? Color.yellow.opacity(0.2)
-                                : Color.gray.opacity(0.1)
+                                : idleStarBackground
                         )
                         .cornerRadius(20)
                     }
@@ -42,7 +67,7 @@ struct ShortProjectInfoCardViewComponets: View {
                 if let desctiption = model.description {
                     Text(desctiption)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(subtitleColor)
                         .lineLimit(2)  // Чтобы текст не раздувал карточку
                 }
 
@@ -51,15 +76,25 @@ struct ShortProjectInfoCardViewComponets: View {
             Spacer()  // Выталкивает контент влево
         }
         .padding(12)
-        .background(Color(.systemBackground))
+        .background(cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)  // Немного объема карточке
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.28 : 0.05), radius: colorScheme == .dark ? 10 : 5, x: 0, y: 2)
+        .onLongPressGesture(
+            minimumDuration: 0.35,
+            pressing: { isPressing in
+                onPressingChanged?(isPressing)
+            },
+            perform: {
+                onLongPress?()
+            }
+        )
     }
 }
 
 private struct _AvatarView: View {
     let imageURL: URL?
     var size: CGFloat = 40
+    @Environment(\.colorScheme) private var colorScheme
 
     // Настройки окантовки
     private let strokeColor: Color = .purple.opacity(0.5)  // Цвет линии
@@ -97,12 +132,14 @@ private struct _AvatarView: View {
 
     private var avatarPlaceholder: some View {
         ZStack {
-            Color(.systemGray6)
+            colorScheme == .dark
+                ? AppTheme.Palette.darkSecondarySurface
+                : Color(.systemGray6)
             Image(systemName: "person.fill")
                 .resizable()
                 .scaledToFit()
                 .frame(width: size * 0.5)
-                .foregroundColor(.purple.opacity(0.6))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.75) : .purple.opacity(0.6))
         }
     }
 }

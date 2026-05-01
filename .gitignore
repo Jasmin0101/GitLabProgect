@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Xcode user data
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Local secrets
+.env
+.env.*
+Secrets.xcconfig
+GitLabProgect/Config/Secrets.xcconfig
+GitLabProgect/Core/Config/LocalSecrets.swift

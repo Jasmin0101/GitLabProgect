@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct GitLabProgectApp: App {
+    private let projectsService: any ProjectsServicing = ProjectsService()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView(projetsViewModel: ProjectViewModel(projectsService: projectsService))
         }
     }
 }

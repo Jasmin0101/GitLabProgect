@@ -5,6 +5,54 @@ struct ProjectDetailedInfoCardViewComponents: View {
     let languages: [String]
     @State var starsCount: Int
     @State private var isLiked: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private let cardColor = AppTheme.Palette.darkSurface
+    private let chipColor = AppTheme.Palette.darkSecondarySurface
+    
+    private var titleColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+    
+    private var ownerColor: Color {
+        colorScheme == .dark ? .white.opacity(0.72) : .purple
+    }
+    
+    private var countColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+    
+    private var starIdleBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.1)
+    }
+    
+    private var starActiveBackground: Color {
+        colorScheme == .dark ? Color.yellow.opacity(0.25) : Color.yellow.opacity(0.2)
+    }
+    
+    private var descriptionColor: Color {
+        colorScheme == .dark ? .white.opacity(0.82) : .secondary
+    }
+    
+    private var languageChipBackground: Color {
+        colorScheme == .dark ? chipColor : Color.purple.opacity(0.1)
+    }
+    
+    private var languageChipText: Color {
+        colorScheme == .dark ? .white.opacity(0.9) : .purple
+    }
+    
+    private var cardBackground: Color {
+        colorScheme == .dark ? cardColor : Color(.systemBackground)
+    }
+    
+    private var cardShadow: Color {
+        colorScheme == .dark ? .black.opacity(0.35) : .black.opacity(0.1)
+    }
+    
+    private var cardShadowRadius: CGFloat {
+        colorScheme == .dark ? 14 : 8
+    }
     
     init(model: ProjectModel, languages: [String]) {
             self.model = model
@@ -22,11 +70,11 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(model.name)
                         .font(.title3.bold())
-                        .foregroundColor(.primary)
+                        .foregroundColor(titleColor)
                     if let owner = model.owner {
                         Text("@\(owner.name)")
                             .font(.subheadline)
-                            .foregroundColor(.purple)
+                            .foregroundColor(ownerColor)
                     }
                 }
                 
@@ -46,11 +94,11 @@ struct ProjectDetailedInfoCardViewComponents: View {
                         Text("\(starsCount)")
                             .font(.system(.subheadline, design: .rounded))
                             .bold()
-                            .foregroundColor(.primary)
+                            .foregroundColor(countColor)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(isLiked ? Color.yellow.opacity(0.2) : Color.gray.opacity(0.1))
+                    .background(isLiked ? starActiveBackground : starIdleBackground)
                     .cornerRadius(20)
                 }
                 .buttonStyle(.plain) // Убираем стандартное мигание кнопки
@@ -61,7 +109,7 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 ScrollView(.vertical, showsIndicators: true) {
                     Text(description)
                         .font(.body)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(descriptionColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(height: 80) // Ограничиваем высоту зоны прокрутки
@@ -75,17 +123,17 @@ struct ProjectDetailedInfoCardViewComponents: View {
                             .font(.caption2.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(Color.purple.opacity(0.1))
-                            .foregroundColor(.purple)
+                            .background(languageChipBackground)
+                            .foregroundColor(languageChipText)
                             .clipShape(Capsule())
                     }
                 }
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(cardBackground)
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .shadow(color: cardShadow, radius: cardShadowRadius, x: 0, y: 4)
         .padding(.horizontal)
     }
 }
@@ -93,6 +141,7 @@ struct ProjectDetailedInfoCardViewComponents: View {
 private struct _AvatarView: View {
     let imageURL: URL?
     var size: CGFloat = 60
+    @Environment(\.colorScheme) private var colorScheme
     
     private let strokeColor: Color = .purple.opacity(0.5)
     private let strokeWidth: CGFloat = 2
@@ -121,14 +170,16 @@ private struct _AvatarView: View {
 
     private var avatarPlaceholder: some View {
         ZStack {
-            Color(.systemGray6)
+            colorScheme == .dark
+                ? AppTheme.Palette.darkSecondarySurface
+                : Color(.systemGray6)
             // Пользователь вверх тормашками
             Image(systemName: "person.fill")
                 .resizable()
                 .scaledToFit()
                 .frame(width: size * 0.5)
                 .rotationEffect(.degrees(180)) // ПЕРЕВОРОТ
-                .foregroundColor(.purple.opacity(0.6))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.75) : .purple.opacity(0.6))
         }
     }
 }

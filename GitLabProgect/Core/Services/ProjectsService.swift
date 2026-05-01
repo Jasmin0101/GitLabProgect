@@ -8,12 +8,23 @@
 import Combine
 import Foundation
 
-final class ProjectsService {
+enum ProjectsServiceError: Error {
+    case invalidRequest
+    case invalidResponse
+}
 
-    private let apiKey: String =
-        "glpat-X9qg-ij08FlVJQaX3vpICmM6MQpvOjEKdTpna2N3bg8.01.171hfuzve"
+protocol ProjectsServicing {
+    func getProjects(page: Int, pageSize: Int) -> AnyPublisher<[ProjectModel], Error>
+}
 
-    private func makeRequest(page: Int, pageSize: Int = 16) -> URLRequest? {
+final class ProjectsService: ProjectsServicing {
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    private func makeRequest(page: Int, pageSize: Int) throws -> URLRequest {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "gitlab.com"
@@ -27,68 +38,44 @@ final class ProjectsService {
 
         components.queryItems = queryItems
 
-        guard let url = components.url else { return nil }
+        guard let url = components.url else {
+            throw ProjectsServiceError.invalidRequest
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(
-            "Bearer \(apiKey)",
-            forHTTPHeaderField: "Authorization"
-        )
+        
+        // Public projects can be loaded without token.
+        // If token exists, we add authorization to expand access.
+        if let token = GitLabTokenProvider.token() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         return request
     }
 
-    func getProjects(page: Int, pageSize: Int = 16) -> AnyPublisher<
-        [ProjectModel], any Error
-    > {
-
-        guard let request = makeRequest(page: page, pageSize: pageSize)
-        else {
-            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+    func getProjects(page: Int, pageSize: Int = 16) -> AnyPublisher<[ProjectModel], Error> {
+        let request: URLRequest
+        do {
+            request = try makeRequest(page: page, pageSize: pageSize)
+        } catch {
+            return Fail(error: error).eraseToAnyPublisher()
         }
 
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase // Магическая строка для исправления 90% ошибок
-        
-        let dataPublisher = URLSession.shared.dataTaskPublisher(for: request)
-            .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                if let json = String(data: data, encoding: .utf8) {
-                    print("API response:", json)
+
+        return session.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse,
+                      200...299 ~= httpResponse.statusCode
+                else {
+                    throw ProjectsServiceError.invalidResponse
                 }
-            })
-            .decode(type: [ProjectModel].self, decoder: decoder)
-            .mapError { error -> Error in
-                if let decodingError = error as? DecodingError {
-                    switch decodingError {
-                    case .keyNotFound(let key, let context):
-                        print("❌ ОШИБКА: Ключ '\(key.stringValue)' не найден!")
-                        print("📍 Путь: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
-                        
-                    case .valueNotFound(let type, let context):
-                        print("❌ ОШИБКА: Значение типа \(type) не найдено (null там, где не ждали).")
-                        print("📍 Путь: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
-                        
-                    case .typeMismatch(let type, let context):
-                        print("❌ ОШИБКА: Несоответствие типов! Ожидался \(type).")
-                        print("📍 Путь: \(context.codingPath.map { $0.stringValue }.joined(separator: " -> "))")
-                        
-                    case .dataCorrupted(let context):
-                        print("❌ ОШИБКА: Данные повреждены (невалидный JSON).")
-                        print("📍 Контекст: \(context.debugDescription)")
-                    @unknown default:
-                        print("❌ Неизвестная ошибка декодирования.")
-                    }
-                }
-                return error
+                return data
             }
+            .decode(type: [ProjectModel].self, decoder: decoder)
+            .mapError { $0 as Error }
             .eraseToAnyPublisher()
-
-        return dataPublisher
-
     }
-
 }

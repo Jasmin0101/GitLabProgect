@@ -1,43 +1,35 @@
 import Combine
-//
-//  ProjectViewModel.swift
-//  GitLabProgect
-//
-//  Created by Жасмина on 30.04.2026.
-//
 import Foundation
 
 class ProjectViewModel: ObservableObject {
 
-    private let projectsService: ProjectsService = ProjectsService()
-    private var cacelables = Set<AnyCancellable>()
+    private let projectsService: any ProjectsServicing
+    private var cancellables = Set<AnyCancellable>()
 
     @Published var projects: [ProjectModel] = []
     @Published var isLoading = false
 
+    init(projectsService: any ProjectsServicing = ProjectsService()) {
+        self.projectsService = projectsService
+    }
+
     func loadProjects() {
         isLoading = true
 
-        projectsService.getProjects(page: 0).receive(on: DispatchQueue.main)
+        projectsService.getProjects(page: 0, pageSize: 16)
+            .receive(on: DispatchQueue.main)
             .sink(
-                receiveCompletion: {
-                    [weak self] completion in
+                receiveCompletion: { [weak self] completion in
                     self?.isLoading = false
-                    switch completion {
-                    case .failure(let error):
+                    if case .failure(let error) = completion {
                         print("Error: \(error.localizedDescription)")
-                    default:
-                        break
                     }
                 },
-                receiveValue: {
-                    [weak self] data in
-                    
-                    print("Data: \(data)")
+                receiveValue: { [weak self] data in
                     self?.isLoading = false
-                    self?.projects.append(contentsOf: data)
+                    self?.projects = data
                 }
-            ).store(in: &cacelables)
-
+            )
+            .store(in: &cancellables)
     }
 }

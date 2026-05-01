@@ -3,10 +3,23 @@ import SwiftUI
 struct AppBarViewComponets: View { // Аналог: StatelessWidget или StatefulWidget
     var title: String?
     var isSearch: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
     
     // Аналог: TextEditingController + setState()
     @State private var isSearchActive = false
     @State private var searchText = ""
+    
+    private var darkSurface: Color {
+        AppTheme.Palette.darkSurface
+    }
+    
+    private var barTextColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+
+    private var searchFieldBackground: Color {
+        colorScheme == .dark ? darkSurface : Color(.systemGray6)
+    }
 
     var body: some View {
         // --- Аналог: Column(children: [...], crossAxisAlignment: CrossAxisAlignment.start) ---
@@ -25,6 +38,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                         TextField("Поиск...", text: $searchText)
                             .textFieldStyle(.plain)
                             .autocorrectionDisabled()
+                            .foregroundColor(barTextColor)
                         
                         if !searchText.isEmpty {
                             // --- Аналог: IconButton(onPressed: () {}, icon: Icon(Icons.clear)) ---
@@ -35,7 +49,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                         }
                     }
                     .padding(8)
-                    .background(Color(.systemGray6))
+                    .background(searchFieldBackground)
                     // --- Аналог: BorderRadius.circular(10) ---
                     .cornerRadius(10)
                     // --- Аналог: AnimatedSwitcher или SlideTransition ---
@@ -54,6 +68,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                     // --- Аналог: Text("GitLab", style: TextStyle(fontWeight: FontWeight.bold)) ---
                     Text(title ?? "GitLab Project")
                         .font(.title2.bold())
+                        .foregroundColor(barTextColor)
                     
                     // --- Аналог: Spacer() ---
                     Spacer()
@@ -67,7 +82,6 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                             // --- Аналог: Container(shape: BoxShape.circle, child: Icon(...)) ---
                             Image(systemName: "magnifyingglass")
                                 .padding(10)
-                                .background(Color(.systemGray6))
                                 .clipShape(Circle())
                         }
                     }
@@ -77,10 +91,11 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
             
             // --- Аналог: Divider(height: 1) ---
             Divider()
+                .overlay(colorScheme == .dark ? Color.white.opacity(0.08) : Color.clear)
         }
     }
 }
 
 #Preview {
-    AppBarViewComponets(title:"Mina")
+    AppBarViewComponets(title:"Mina", isSearch: true)
 }
