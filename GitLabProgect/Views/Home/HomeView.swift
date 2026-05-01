@@ -46,7 +46,7 @@ struct HomeView: View {
                     }
                 }
                 .onAppear{
-                    projetsViewModel.loadProjects()
+                    projetsViewModel.loadProjects(isPopular: true)
                 }
             }
             .blur(radius: previewProject == nil ? 0 : 4)
