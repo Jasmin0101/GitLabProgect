@@ -15,7 +15,7 @@ struct ProjectModel: Identifiable, Codable {
     let name: String
     let description: String?
     let avatarUrl: URL? // В JSON: "avatar_url"
-    let starCount: Int  // В JSON: "star_count"
+    let starCount: Int?  // В JSON: "star_count"
     let owner: OwnerModel?
 
     enum CodingKeys: String, CodingKey {
@@ -32,7 +32,7 @@ extension ProjectModel {
     static let mockOwner = OwnerModel(
         id: 3,
         name: "Diaspora",
-        createdAt: "2013-09-30T13:46:02Z"
+
     )
     
     static let mock = ProjectModel(
@@ -52,7 +52,7 @@ extension ProjectModel {
             description: "Solving math physics equations with PINN and NTK analysis.",
             avatarUrl: URL(string: "https://example.com/science.png"),
             starCount: 50,
-            owner: OwnerModel(id: 4, name: "Jasmina", createdAt: "2026-04-30T07:00:00Z")
+            owner: OwnerModel(id: 4, name: "Jasmina",)
         )
     ]
 }

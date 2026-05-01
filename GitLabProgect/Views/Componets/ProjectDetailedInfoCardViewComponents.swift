@@ -10,7 +10,7 @@ struct ProjectDetailedInfoCardViewComponents: View {
             self.model = model
             self.languages = languages
             // Инициализируем State начальным значением из модели
-            _starsCount = State(initialValue: model.starCount)
+            _starsCount = State(initialValue: model.starCount ?? 0)
         }
     
     var body: some View {
@@ -33,6 +33,7 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 Spacer()
                 
                 // Кликабельная звездочка
+                
                 Button(action: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                         isLiked.toggle()
