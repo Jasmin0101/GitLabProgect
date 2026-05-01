@@ -33,6 +33,7 @@ struct HomeView: View {
                             onLongPress: {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                     previewProject = project
+                                    languageViewModel.loadLanguages(for: project.id)
                                 }
                             }
                         )
@@ -71,6 +72,7 @@ struct HomeView: View {
                     .onTapGesture {
                         withAnimation(.easeOut(duration: 0.2)) {
                             self.previewProject = nil
+                            
                         }
                     }
                 
