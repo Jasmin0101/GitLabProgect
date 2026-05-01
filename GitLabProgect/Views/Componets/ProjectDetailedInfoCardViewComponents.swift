@@ -1,8 +1,11 @@
 import SwiftUI
 
+
 struct ProjectDetailedInfoCardViewComponents: View {
-    let model:ProjectModel
-    let languages: [String]
+    let model: ProjectModel
+    // Изменили тип данных на словарь
+    let languages: [String: Double]
+    
     @State var starsCount: Int
     @State private var isLiked: Bool = false
     @Environment(\.colorScheme) private var colorScheme
@@ -10,60 +13,29 @@ struct ProjectDetailedInfoCardViewComponents: View {
     private let cardColor = AppTheme.Palette.darkSurface
     private let chipColor = AppTheme.Palette.darkSecondarySurface
     
-    private var titleColor: Color {
-        colorScheme == .dark ? .white : .primary
-    }
+    // Цветовые вычисляемые свойства (оставляем без изменений)
+    private var titleColor: Color { colorScheme == .dark ? .white : .primary }
+    private var ownerColor: Color { colorScheme == .dark ? .white.opacity(0.72) : .purple }
+    private var countColor: Color { colorScheme == .dark ? .white : .primary }
+    private var starIdleBackground: Color { colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.1) }
+    private var starActiveBackground: Color { colorScheme == .dark ? Color.yellow.opacity(0.25) : Color.yellow.opacity(0.2) }
+    private var descriptionColor: Color { colorScheme == .dark ? .white.opacity(0.82) : .secondary }
+    private var languageChipBackground: Color { colorScheme == .dark ? chipColor : Color.purple.opacity(0.1) }
+    private var languageChipText: Color { colorScheme == .dark ? .white.opacity(0.9) : .purple }
+    private var cardBackground: Color { colorScheme == .dark ? cardColor : Color(.systemBackground) }
+    private var cardShadow: Color { colorScheme == .dark ? .black.opacity(0.35) : .black.opacity(0.1) }
+    private var cardShadowRadius: CGFloat { colorScheme == .dark ? 14 : 8 }
     
-    private var ownerColor: Color {
-        colorScheme == .dark ? .white.opacity(0.72) : .purple
+    // Обновленный инициализатор
+    init(model: ProjectModel, languages: [String: Double]) {
+        self.model = model
+        self.languages = languages
+        _starsCount = State(initialValue: model.starCount ?? 0)
     }
-    
-    private var countColor: Color {
-        colorScheme == .dark ? .white : .primary
-    }
-    
-    private var starIdleBackground: Color {
-        colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.1)
-    }
-    
-    private var starActiveBackground: Color {
-        colorScheme == .dark ? Color.yellow.opacity(0.25) : Color.yellow.opacity(0.2)
-    }
-    
-    private var descriptionColor: Color {
-        colorScheme == .dark ? .white.opacity(0.82) : .secondary
-    }
-    
-    private var languageChipBackground: Color {
-        colorScheme == .dark ? chipColor : Color.purple.opacity(0.1)
-    }
-    
-    private var languageChipText: Color {
-        colorScheme == .dark ? .white.opacity(0.9) : .purple
-    }
-    
-    private var cardBackground: Color {
-        colorScheme == .dark ? cardColor : Color(.systemBackground)
-    }
-    
-    private var cardShadow: Color {
-        colorScheme == .dark ? .black.opacity(0.35) : .black.opacity(0.1)
-    }
-    
-    private var cardShadowRadius: CGFloat {
-        colorScheme == .dark ? 14 : 8
-    }
-    
-    init(model: ProjectModel, languages: [String]) {
-            self.model = model
-            self.languages = languages
-            // Инициализируем State начальным значением из модели
-            _starsCount = State(initialValue: model.starCount ?? 0)
-        }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Верхняя часть
+            // Верхняя часть (Avatar, Name, Stars)
             HStack(alignment: .top, spacing: 12) {
                 _AvatarView(imageURL: model.avatarUrl, size: 50)
                 
@@ -79,8 +51,6 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 }
                 
                 Spacer()
-                
-                // Кликабельная звездочка
                 
                 Button(action: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
@@ -101,10 +71,10 @@ struct ProjectDetailedInfoCardViewComponents: View {
                     .background(isLiked ? starActiveBackground : starIdleBackground)
                     .cornerRadius(20)
                 }
-                .buttonStyle(.plain) // Убираем стандартное мигание кнопки
+                .buttonStyle(.plain)
             }
             
-            // Прокручиваемое описание
+            // Описание
             if let description = model.description {
                 ScrollView(.vertical, showsIndicators: true) {
                     Text(description)
@@ -112,20 +82,30 @@ struct ProjectDetailedInfoCardViewComponents: View {
                         .foregroundColor(descriptionColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(height: 80) // Ограничиваем высоту зоны прокрутки
+                .frame(height: 80)
             }
             
-            // Список языков
+            // Обновленный список языков
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(languages, id: \.self) { lang in
-                        Text(lang)
-                            .font(.caption2.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(languageChipBackground)
-                            .foregroundColor(languageChipText)
-                            .clipShape(Capsule())
+                    // Сортируем по значению (процентам), чтобы самые используемые были первыми
+                    let sortedLanguages = languages.sorted { $0.value > $1.value }
+                    
+                    ForEach(sortedLanguages, id: \.key) { name, percent in
+                        HStack(spacing: 4) {
+                            Text(name)
+                                .font(.caption2.bold())
+                            
+                            // Добавляем отображение процентов
+                            Text(String(format: "%.1f%%", percent))
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .opacity(0.7)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(languageChipBackground)
+                        .foregroundColor(languageChipText)
+                        .clipShape(Capsule())
                     }
                 }
             }
@@ -138,6 +118,22 @@ struct ProjectDetailedInfoCardViewComponents: View {
     }
 }
 
+// Вспомогательные View (_AvatarView и Preview) оставляем без изменений,
+// обновив только данные в Preview
+#Preview {
+    ZStack {
+        Color(.systemGray6).ignoresSafeArea()
+        ProjectDetailedInfoCardViewComponents(
+            model: ProjectModel.mock,
+            languages: [
+                "Swift": 75.5,
+                "Objective-C": 12.0,
+                "Ruby": 8.5,
+                "Shell": 4.0
+            ]
+        )
+    }
+}
 private struct _AvatarView: View {
     let imageURL: URL?
     var size: CGFloat = 60
@@ -189,7 +185,11 @@ private struct _AvatarView: View {
         Color(.systemGray6).ignoresSafeArea()
         ProjectDetailedInfoCardViewComponents(
             model: ProjectModel.mock,
-                    languages: ["Swift", "SwiftUI", "Combine", "GraphQL", "Python", "Rust", "C++"],
-        )
+            languages: [
+                            "Swift": 75.5,
+                            "Objective-C": 12.0,
+                            "Ruby": 8.5,
+                            "Shell": 4.0
+                        ]        )
     }
 }

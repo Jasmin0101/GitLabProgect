@@ -10,6 +10,8 @@ import SwiftUI
 struct HomeView: View {
     
     @StateObject var projetsViewModel: ProjectViewModel
+    @StateObject var languageViewModel: LanguageViewModel
+
     @State private var previewProject: ProjectModel? = nil
     @Environment(\.colorScheme) private var colorScheme
     
@@ -74,7 +76,7 @@ struct HomeView: View {
                 
                 ProjectDetailedInfoCardViewComponents(
                     model: previewProject,
-                    languages: []
+                    languages: languageViewModel.languages
                 )
                 .padding(.horizontal, 8)
                 .transition(.asymmetric(insertion: .scale(scale: 0.94).combined(with: .opacity), removal: .opacity))
@@ -88,5 +90,5 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(projetsViewModel:  ProjectViewModel())
+    HomeView( projetsViewModel:  ProjectViewModel(),languageViewModel:  LanguageViewModel())
 }
