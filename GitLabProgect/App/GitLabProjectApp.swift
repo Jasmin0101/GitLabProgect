@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct GitLabProgectApp: App {
+struct GitLabProjectApp: App {
     private let projectsService: any ProjectsServicing = ProjectsService()
     private var languageViewModel: LanguageViewModel = LanguageViewModel()
     

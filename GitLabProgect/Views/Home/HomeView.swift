@@ -8,58 +8,86 @@
 import SwiftUI
 
 struct HomeView: View {
-    
+
     @StateObject var projetsViewModel: ProjectViewModel
     @StateObject var languageViewModel: LanguageViewModel
 
     @State private var previewProject: ProjectModel? = nil
+    @State private var perPage: Int = 20
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private let darkBackground = AppTheme.Palette.darkBackground
-    
+
     var body: some View {
         ZStack {
             (colorScheme == .dark ? darkBackground : Color(.systemBackground))
                 .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 AppBarViewComponets(title: "GitPub", isSearch: true)
-                
-                ScrollView{
-                    ForEach(projetsViewModel.projects , id: \.id){
-                        project in
-                        ShortProjectInfoCardViewComponets(
-                            model: project,
-                            onLongPress: {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                    previewProject = project
-                                    languageViewModel.loadLanguages(for: project.id)
+
+                ScrollView {
+                    LazyVStack {
+                        ForEach(projetsViewModel.projects, id: \.id) {
+                            project in
+                            ShortProjectInfoCardViewComponets(
+                                model: project,
+                                onLongPress: {
+                                    withAnimation(
+                                        .spring(
+                                            response: 0.35,
+                                            dampingFraction: 0.85
+                                        )
+                                    ) {
+                                        previewProject = project
+                                        languageViewModel.loadLanguages(
+                                            for: project.id
+                                        )
+                                    }
+                                }
+                            ).onAppear{
+                                // Если это последний элемент в массиве — грузим следующую страницу
+                                if project.id == projetsViewModel.projects.last?.id
+                                {
+                                    self.perPage += 20
+                                    projetsViewModel.loadProjects(
+                                        isPopular: true,
+                                        pageSize: perPage,
+                                        
+                                        
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
                 }.padding(.horizontal)
-                .overlay{
-                    if projetsViewModel.isLoading{
-                        ProgressView()
-                    } else if projetsViewModel.projects.isEmpty {
-                        EmptyView()
+                    .overlay {
+                        if projetsViewModel.isLoading {
+                            ProgressView()
+                        } else if projetsViewModel.projects.isEmpty {
+                            EmptyView()
+                        }
                     }
-                }
-                .onAppear{
-                    projetsViewModel.loadProjects(isPopular: true)
-                }
+                    .onAppear {
+                        if projetsViewModel.projects.isEmpty {
+                            projetsViewModel.loadProjects(
+                                isPopular: true,
+                                pageSize: perPage,
+                                isFirstPage: true
+                            )
+                        }
+                    }
             }
             .blur(radius: previewProject == nil ? 0 : 4)
             .animation(.easeInOut(duration: 0.2), value: previewProject != nil)
-            
+
             if let previewProject {
                 Group {
                     if colorScheme == .dark {
                         LinearGradient(
                             colors: [
                                 AppTheme.Overlay.darkTop,
-                                AppTheme.Overlay.darkBottom
+                                AppTheme.Overlay.darkBottom,
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -68,20 +96,25 @@ struct HomeView: View {
                         Color.black.opacity(0.25)
                     }
                 }
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            self.previewProject = nil
-                            
-                        }
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        self.previewProject = nil
+
                     }
-                
+                }
+
                 ProjectDetailedInfoCardViewComponents(
                     model: previewProject,
                     languages: languageViewModel.languages
                 )
                 .padding(.horizontal, 8)
-                .transition(.asymmetric(insertion: .scale(scale: 0.94).combined(with: .opacity), removal: .opacity))
+                .transition(
+                    .asymmetric(
+                        insertion: .scale(scale: 0.94).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
                 .zIndex(1)
                 .onTapGesture {
                     // Блокируем закрытие при тапе по самой карточке
@@ -92,5 +125,8 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView( projetsViewModel:  ProjectViewModel(),languageViewModel:  LanguageViewModel())
+    HomeView(
+        projetsViewModel: ProjectViewModel(),
+        languageViewModel: LanguageViewModel()
+    )
 }
