@@ -13,10 +13,16 @@ struct HomeView: View {
     @StateObject var languageViewModel: LanguageViewModel
 
     @State private var previewProject: ProjectModel? = nil
-    @State private var perPage: Int = 20
+    @State private var searchQuery = ""
+    @State private var searchDebounceWorkItem: DispatchWorkItem?
     @Environment(\.colorScheme) private var colorScheme
 
     private let darkBackground = AppTheme.Palette.darkBackground
+    private let pageSize = 20
+
+    private var rankedProjects: [ProjectModel] {
+        projetsViewModel.rankedProjects(for: searchQuery)
+    }
 
     var body: some View {
         ZStack {
@@ -24,14 +30,24 @@ struct HomeView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                AppBarViewComponets(title: "GitPub", isSearch: true)
+                AppBarViewComponets(
+                    title: "GitPub",
+                    isSearch: true,
+                    onSearchTextChanged: { text in
+                        scheduleSearch(with: text)
+                    }
+                )
 
                 ScrollView {
                     LazyVStack {
-                        ForEach(projetsViewModel.projects, id: \.id) {
-                            project in
+                        ForEach(rankedProjects, id: \.id) { project in
                             ShortProjectInfoCardViewComponets(
                                 model: project,
+                                isStarred: projetsViewModel.isStarred(projectID: project.id),
+                                starsCount: projetsViewModel.displayedStarCount(for: project),
+                                onToggleStar: {
+                                    projetsViewModel.toggleStar(for: project.id)
+                                },
                                 onLongPress: {
                                     withAnimation(
                                         .spring(
@@ -45,38 +61,37 @@ struct HomeView: View {
                                         )
                                     }
                                 }
-                            ).onAppear{
+                            ).onAppear {
                                 // Если это последний элемент в массиве — грузим следующую страницу
-                                if project.id == projetsViewModel.projects.last?.id
-                                {
-                                    self.perPage += 20
+                                if project.id == rankedProjects.last?.id {
                                     projetsViewModel.loadProjects(
+                                        query: normalizedQuery,
                                         isPopular: true,
-                                        pageSize: perPage,
-                                        
-                                        
+                                        pageSize: pageSize
                                     )
                                 }
                             }
                         }
                     }
-                }.padding(.horizontal)
-                    .overlay {
-                        if projetsViewModel.isLoading {
-                            ProgressView()
-                        } else if projetsViewModel.projects.isEmpty {
-                            EmptyView()
-                        }
+                }
+                .padding(.horizontal)
+                .overlay {
+                    if projetsViewModel.isLoading {
+                        ProgressView()
+                    } else if rankedProjects.isEmpty {
+                        EmptyView()
                     }
-                    .onAppear {
-                        if projetsViewModel.projects.isEmpty {
-                            projetsViewModel.loadProjects(
-                                isPopular: true,
-                                pageSize: perPage,
-                                isFirstPage: true
-                            )
-                        }
+                }
+                .onAppear {
+                    if projetsViewModel.projects.isEmpty {
+                        projetsViewModel.loadProjects(
+                            query: normalizedQuery,
+                            isPopular: true,
+                            pageSize: pageSize,
+                            isFirstPage: true
+                        )
                     }
+                }
             }
             .blur(radius: previewProject == nil ? 0 : 4)
             .animation(.easeInOut(duration: 0.2), value: previewProject != nil)
@@ -106,7 +121,12 @@ struct HomeView: View {
 
                 ProjectDetailedInfoCardViewComponents(
                     model: previewProject,
-                    languages: languageViewModel.languages
+                    languages: languageViewModel.languages,
+                    isStarred: projetsViewModel.isStarred(projectID: previewProject.id),
+                    starsCount: projetsViewModel.displayedStarCount(for: previewProject),
+                    onToggleStar: {
+                        projetsViewModel.toggleStar(for: previewProject.id)
+                    }
                 )
                 .padding(.horizontal, 8)
                 .transition(
@@ -121,6 +141,28 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private var normalizedQuery: String? {
+        let value = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    private func scheduleSearch(with text: String) {
+        searchDebounceWorkItem?.cancel()
+        searchQuery = text
+
+        let workItem = DispatchWorkItem {
+            projetsViewModel.loadProjects(
+                query: normalizedQuery,
+                isPopular: true,
+                pageSize: pageSize,
+                isFirstPage: true
+            )
+        }
+
+        searchDebounceWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
     }
 }
 

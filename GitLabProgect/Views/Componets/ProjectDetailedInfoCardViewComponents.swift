@@ -1,19 +1,17 @@
 import SwiftUI
 
-
 struct ProjectDetailedInfoCardViewComponents: View {
     let model: ProjectModel
-    // Изменили тип данных на словарь
     let languages: [String: Double]
-    
-    @State var starsCount: Int
-    @State private var isLiked: Bool = false
+    let isStarred: Bool
+    let starsCount: Int
+    let onToggleStar: (() -> Void)?
+
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private let cardColor = AppTheme.Palette.darkSurface
     private let chipColor = AppTheme.Palette.darkSecondarySurface
-    
-    // Цветовые вычисляемые свойства (оставляем без изменений)
+
     private var titleColor: Color { colorScheme == .dark ? .white : .primary }
     private var ownerColor: Color { colorScheme == .dark ? .white.opacity(0.72) : .purple }
     private var countColor: Color { colorScheme == .dark ? .white : .primary }
@@ -25,20 +23,12 @@ struct ProjectDetailedInfoCardViewComponents: View {
     private var cardBackground: Color { colorScheme == .dark ? cardColor : Color(.systemBackground) }
     private var cardShadow: Color { colorScheme == .dark ? .black.opacity(0.35) : .black.opacity(0.1) }
     private var cardShadowRadius: CGFloat { colorScheme == .dark ? 14 : 8 }
-    
-    // Обновленный инициализатор
-    init(model: ProjectModel, languages: [String: Double]) {
-        self.model = model
-        self.languages = languages
-        _starsCount = State(initialValue: model.starCount ?? 0)
-    }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Верхняя часть (Avatar, Name, Stars)
             HStack(alignment: .top, spacing: 12) {
                 _AvatarView(imageURL: model.avatarUrl, size: 50)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(model.name)
                         .font(.title3.bold())
@@ -49,18 +39,17 @@ struct ProjectDetailedInfoCardViewComponents: View {
                             .foregroundColor(ownerColor)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        isLiked.toggle()
-                        starsCount += isLiked ? 1 : -1
+                        onToggleStar?()
                     }
                 }) {
                     HStack(spacing: 4) {
-                        Image(systemName: isLiked ? "star.fill" : "star")
-                            .foregroundColor(isLiked ? .yellow : .gray)
+                        Image(systemName: isStarred ? "star.fill" : "star")
+                            .foregroundColor(isStarred ? .yellow : .gray)
                         Text("\(starsCount)")
                             .font(.system(.subheadline, design: .rounded))
                             .bold()
@@ -68,13 +57,12 @@ struct ProjectDetailedInfoCardViewComponents: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(isLiked ? starActiveBackground : starIdleBackground)
+                    .background(isStarred ? starActiveBackground : starIdleBackground)
                     .cornerRadius(20)
                 }
                 .buttonStyle(.plain)
             }
-            
-            // Описание
+
             if let description = model.description {
                 ScrollView(.vertical, showsIndicators: true) {
                     Text(description)
@@ -84,19 +72,16 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 }
                 .frame(height: 80)
             }
-            
-            // Обновленный список языков
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    // Сортируем по значению (процентам), чтобы самые используемые были первыми
                     let sortedLanguages = languages.sorted { $0.value > $1.value }
-                    
+
                     ForEach(sortedLanguages, id: \.key) { name, percent in
                         HStack(spacing: 4) {
                             Text(name)
                                 .font(.caption2.bold())
-                            
-                            // Добавляем отображение процентов
+
                             Text(String(format: "%.1f%%", percent))
                                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                                 .opacity(0.7)
@@ -118,8 +103,6 @@ struct ProjectDetailedInfoCardViewComponents: View {
     }
 }
 
-// Вспомогательные View (_AvatarView и Preview) оставляем без изменений,
-// обновив только данные в Preview
 #Preview {
     ZStack {
         Color(.systemGray6).ignoresSafeArea()
@@ -130,15 +113,19 @@ struct ProjectDetailedInfoCardViewComponents: View {
                 "Objective-C": 12.0,
                 "Ruby": 8.5,
                 "Shell": 4.0
-            ]
+            ],
+            isStarred: true,
+            starsCount: 126,
+            onToggleStar: {}
         )
     }
 }
+
 private struct _AvatarView: View {
     let imageURL: URL?
     var size: CGFloat = 60
     @Environment(\.colorScheme) private var colorScheme
-    
+
     private let strokeColor: Color = .purple.opacity(0.5)
     private let strokeWidth: CGFloat = 2
 
@@ -169,27 +156,12 @@ private struct _AvatarView: View {
             colorScheme == .dark
                 ? AppTheme.Palette.darkSecondarySurface
                 : Color(.systemGray6)
-            // Пользователь вверх тормашками
             Image(systemName: "person.fill")
                 .resizable()
                 .scaledToFit()
                 .frame(width: size * 0.5)
-                .rotationEffect(.degrees(180)) // ПЕРЕВОРОТ
+                .rotationEffect(.degrees(180))
                 .foregroundColor(colorScheme == .dark ? .white.opacity(0.75) : .purple.opacity(0.6))
         }
-    }
-}
-
-#Preview {
-    ZStack {
-        Color(.systemGray6).ignoresSafeArea()
-        ProjectDetailedInfoCardViewComponents(
-            model: ProjectModel.mock,
-            languages: [
-                            "Swift": 75.5,
-                            "Objective-C": 12.0,
-                            "Ruby": 8.5,
-                            "Shell": 4.0
-                        ]        )
     }
 }

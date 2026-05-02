@@ -2,78 +2,79 @@ import SwiftUI
 
 struct ShortProjectInfoCardViewComponets: View {
     var model: ProjectModel
+    var isStarred: Bool = false
+    var starsCount: Int = 0
+    var onToggleStar: (() -> Void)? = nil
     var onLongPress: (() -> Void)? = nil
     var onPressingChanged: ((Bool) -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
 
-//    let tagName: String
-    @State private var isLiked: Bool = false
-    
     private var darkCardColor: Color {
         AppTheme.Palette.darkSurface
     }
-    
+
     private var titleColor: Color {
         colorScheme == .dark ? .white : .primary
     }
-    
+
     private var subtitleColor: Color {
         colorScheme == .dark ? .white.opacity(0.78) : .secondary
     }
-    
+
     private var cardBackground: Color {
         colorScheme == .dark ? darkCardColor : Color(.systemBackground)
     }
-    
+
     private var idleStarBackground: Color {
         colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.1)
     }
-    
+
     var body: some View {
-        HStack(spacing: 12) {  // Добавил отступ между аватаркой и текстом
+        HStack(spacing: 12) {
             _AvatarView(imageURL: model.avatarUrl, size: 50)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(model.name)
-                        .font(.headline).lineLimit(1)
+                        .font(.headline)
+                        .lineLimit(1)
                         .foregroundColor(titleColor)
                     Spacer()
                     Button(action: {
-                        withAnimation(
-                            .spring(response: 0.3, dampingFraction: 0.6)
-                        ) {
-                            isLiked.toggle()
-                           
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            onToggleStar?()
                         }
                     }) {
                         HStack(spacing: 4) {
-                            Image(systemName: isLiked ? "star.fill" : "star")
-                                .foregroundColor(isLiked ? .yellow : .gray)
-                            
+                            Image(systemName: isStarred ? "star.fill" : "star")
+                                .foregroundColor(isStarred ? .yellow : .gray)
+                            Text("\(starsCount)")
+                                .font(.system(.caption, design: .rounded))
+                                .bold()
+                                .foregroundColor(titleColor)
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(
-                            isLiked
+                            isStarred
                                 ? Color.yellow.opacity(0.2)
                                 : idleStarBackground
                         )
                         .cornerRadius(20)
                     }
-                    .buttonStyle(.plain)  // Убираем стандартное мигание кнопки
+                    .buttonStyle(.plain)
 
                 }
                 if let desctiption = model.description {
                     Text(desctiption)
                         .font(.subheadline)
                         .foregroundColor(subtitleColor)
-                        .lineLimit(2)  // Чтобы текст не раздувал карточку
+                        .lineLimit(2)
                 }
 
-               
+
             }
-            Spacer()  // Выталкивает контент влево
+            Spacer()
         }
         .padding(12)
         .background(cardBackground)
@@ -97,8 +98,8 @@ private struct _AvatarView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     // Настройки окантовки
-    private let strokeColor: Color = .purple.opacity(0.5)  // Цвет линии
-    private let strokeWidth: CGFloat = 2  // Толщина 2 пикселя
+    private let strokeColor: Color = .purple.opacity(0.5)
+    private let strokeWidth: CGFloat = 2
 
     var body: some View {
         Group {
@@ -122,9 +123,8 @@ private struct _AvatarView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(Circle())  // Сначала обрезаем контент по кругу
+        .clipShape(Circle())
         .overlay(
-            // ДОБАВЛЯЕМ ОКАНТОВКУ ТУТ
             Circle()
                 .stroke(strokeColor, lineWidth: strokeWidth)
         )
@@ -147,11 +147,15 @@ private struct _AvatarView: View {
 #Preview {
     VStack {
         ShortProjectInfoCardViewComponets(
-            model: ProjectModel.mock
+            model: ProjectModel.mock,
+            isStarred: true,
+            starsCount: 126
         )
 
         ShortProjectInfoCardViewComponets(
-            model: ProjectModel.mock
+            model: ProjectModel.mock,
+            isStarred: false,
+            starsCount: 125
         )
     }
     .padding()
