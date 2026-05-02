@@ -14,6 +14,9 @@ class ProjectViewModel: ObservableObject {
     @Published var projects: [ProjectModel] = []  // Массив загруженных проектов
     @Published var isLoading = false  // Индикатор процесса загрузки
     @Published private(set) var starredProjectIDs: Set<Int> = []
+    @Published private(set) var projectDetailsByID: [Int: ProjectModel] = [:]
+    @Published private(set) var detailLoadingIDs: Set<Int> = []
+    @Published private(set) var detailErrorByID: [Int: String] = [:]
 
     private var currentPage = 1
     private var canLoadMore = true
@@ -53,6 +56,55 @@ class ProjectViewModel: ObservableObject {
     func displayedStarCount(for project: ProjectModel) -> Int {
         let base = max(0, project.starCount ?? 0)
         return base + (isStarred(projectID: project.id) ? 1 : 0)
+    }
+
+    // MARK: - Project Details
+
+    func projectDetails(for projectID: Int) -> ProjectModel? {
+        projectDetailsByID[projectID]
+    }
+
+    func isDetailLoading(for projectID: Int) -> Bool {
+        detailLoadingIDs.contains(projectID)
+    }
+
+    func detailError(for projectID: Int) -> String? {
+        detailErrorByID[projectID]
+    }
+
+    func loadProjectDetails(projectID: Int, forceRefresh: Bool = false) {
+        if !forceRefresh, projectDetailsByID[projectID] != nil {
+            return
+        }
+
+        guard !detailLoadingIDs.contains(projectID) else { return }
+
+        detailLoadingIDs.insert(projectID)
+        detailErrorByID[projectID] = nil
+
+        projectsService.getProjectDetails(projectID: projectID)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self = self else { return }
+                    self.detailLoadingIDs.remove(projectID)
+
+                    if case .failure(let error) = completion {
+                        self.detailErrorByID[projectID] = error.localizedDescription
+                        print("Detail error: \(error.localizedDescription)")
+                    }
+                },
+                receiveValue: { [weak self] detailProject in
+                    guard let self = self else { return }
+                    self.projectDetailsByID[projectID] = detailProject
+                    self.detailErrorByID[projectID] = nil
+
+                    if let index = self.projects.firstIndex(where: { $0.id == projectID }) {
+                        self.projects[index] = detailProject
+                    }
+                }
+            )
+            .store(in: &cancellables)
     }
 
     // MARK: - Ranking

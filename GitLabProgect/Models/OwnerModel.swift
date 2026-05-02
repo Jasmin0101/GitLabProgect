@@ -8,7 +8,7 @@
 import Foundation
 
 
-struct OwnerModel: Codable, Identifiable {
+struct OwnerModel: Codable, Identifiable , Hashable , Equatable {
     let id: Int
     let name: String
 

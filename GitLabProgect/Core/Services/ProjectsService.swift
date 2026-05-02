@@ -10,6 +10,7 @@ enum ProjectsServiceError: Error {
 // Протокол, описывающий возможности сервиса (удобно для тестирования и архитектуры)
 protocol ProjectsServicing {
     func getProjects(page: Int, pageSize: Int, query: String?, orderByStarCount: Bool) -> AnyPublisher<[ProjectModel], Error>
+    func getProjectDetails(projectID: Int) -> AnyPublisher<ProjectModel, Error>
 }
 
 final class ProjectsService: ProjectsServicing {
@@ -20,8 +21,8 @@ final class ProjectsService: ProjectsServicing {
         self.session = session
     }
 
-    // Вспомогательная функция для сборки URLRequest
-    private func makeRequest(
+    // Вспомогательная функция для сборки URLRequest списка проектов
+    private func makeProjectsRequest(
         page: Int,
         pageSize: Int,
         query: String?,
@@ -38,12 +39,12 @@ final class ProjectsService: ProjectsServicing {
         var queryItems: [URLQueryItem] {
             URLQueryItem(name: "page", value: "\(page)")
             URLQueryItem(name: "per_page", value: "\(pageSize)")
-            
+
             // Если передан текст поиска, добавляем его в параметры
             if let query = query, !query.isEmpty {
                 URLQueryItem(name: "search", value: query)
             }
-            
+
             // Если нужна сортировка по звездам, добавляем соответствующие ключи API
             if orderByStarCount {
                 URLQueryItem(name: "order_by", value: "star_count")
@@ -70,11 +71,42 @@ final class ProjectsService: ProjectsServicing {
         return request
     }
 
+    // Вспомогательная функция для сборки URLRequest детального проекта
+    private func makeProjectDetailRequest(
+        projectID: Int,
+        includeAuthorization: Bool
+    ) throws -> URLRequest {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "gitlab.com"
+        components.path = "/api/v4/projects/\(projectID)"
+        components.queryItems = [
+            URLQueryItem(name: "statistics", value: "true")
+        ]
+
+        guard let url = components.url else {
+            throw ProjectsServiceError.invalidRequest
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if includeAuthorization, let token = GitLabTokenProvider.token() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        return request
+    }
+
     // Общая функция для выполнения запроса и парсинга JSON
-    private func execute(_ request: URLRequest) -> AnyPublisher<[ProjectModel], Error> {
+    private func execute<Response: Decodable>(
+        _ request: URLRequest,
+        as type: Response.Type
+    ) -> AnyPublisher<Response, Error> {
         let decoder = JSONDecoder()
 
-        return session.dataTaskPublisher(for: request) // Создаем издателя для сетевого запроса
+        return session.dataTaskPublisher(for: request)
             .tryMap { data, response in
                 // Проверяем, что ответ — это HTTP ответ
                 guard let httpResponse = response as? HTTPURLResponse else {
@@ -86,11 +118,11 @@ final class ProjectsService: ProjectsServicing {
                     throw ProjectsServiceError.invalidResponse(statusCode: httpResponse.statusCode)
                 }
 
-                return data // Передаем сырые данные дальше по цепочке
+                return data
             }
-            .decode(type: [ProjectModel].self, decoder: decoder) // Пытаемся превратить JSON в массив моделей
-            .mapError { $0 as Error } // Приводим возможные ошибки декодинга к общему типу Error
-            .eraseToAnyPublisher()    // Скрываем сложный тип Combine за AnyPublisher
+            .decode(type: type, decoder: decoder)
+            .mapError { $0 as Error }
+            .eraseToAnyPublisher()
     }
 
     // Основной публичный метод для получения проектов
@@ -100,12 +132,12 @@ final class ProjectsService: ProjectsServicing {
         query: String? = nil,
         orderByStarCount: Bool = false
     ) -> AnyPublisher<[ProjectModel], Error> {
-        
+
         let authorizedRequest: URLRequest
 
         // 1. Пытаемся создать запрос с авторизацией
         do {
-            authorizedRequest = try makeRequest(
+            authorizedRequest = try makeProjectsRequest(
                 page: page,
                 pageSize: pageSize,
                 query: query,
@@ -117,7 +149,7 @@ final class ProjectsService: ProjectsServicing {
         }
 
         // 2. Выполняем запрос
-        return execute(authorizedRequest)
+        return execute(authorizedRequest, as: [ProjectModel].self)
             .catch { [weak self] error -> AnyPublisher<[ProjectModel], Error> in
                 // 3. Если получили ошибку 401 (не авторизован) или 403 (запрещено),
                 // пробуем выполнить тот же запрос, но уже БЕЗ токена (для публичных проектов)
@@ -133,14 +165,51 @@ final class ProjectsService: ProjectsServicing {
 
                 do {
                     // Создаем "чистый" запрос без авторизации (fallback)
-                    let fallbackRequest = try self.makeRequest(
+                    let fallbackRequest = try self.makeProjectsRequest(
                         page: page,
                         pageSize: pageSize,
                         query: query,
                         orderByStarCount: orderByStarCount,
                         includeAuthorization: false
                     )
-                    return self.execute(fallbackRequest)
+                    return self.execute(fallbackRequest, as: [ProjectModel].self)
+                } catch {
+                    return Fail(error: error).eraseToAnyPublisher()
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+
+    // Получение деталей одного проекта
+    func getProjectDetails(projectID: Int) -> AnyPublisher<ProjectModel, Error> {
+        let authorizedRequest: URLRequest
+
+        do {
+            authorizedRequest = try makeProjectDetailRequest(
+                projectID: projectID,
+                includeAuthorization: true
+            )
+        } catch {
+            return Fail(error: error).eraseToAnyPublisher()
+        }
+
+        return execute(authorizedRequest, as: ProjectModel.self)
+            .catch { [weak self] error -> AnyPublisher<ProjectModel, Error> in
+                guard
+                    let self,
+                    case ProjectsServiceError.invalidResponse(let statusCode) = error,
+                    (statusCode == 401 || statusCode == 403),
+                    authorizedRequest.value(forHTTPHeaderField: "Authorization") != nil
+                else {
+                    return Fail(error: error).eraseToAnyPublisher()
+                }
+
+                do {
+                    let fallbackRequest = try self.makeProjectDetailRequest(
+                        projectID: projectID,
+                        includeAuthorization: false
+                    )
+                    return self.execute(fallbackRequest, as: ProjectModel.self)
                 } catch {
                     return Fail(error: error).eraseToAnyPublisher()
                 }

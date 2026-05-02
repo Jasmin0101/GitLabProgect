@@ -5,6 +5,7 @@ struct ShortProjectInfoCardViewComponets: View {
     var isStarred: Bool = false
     var starsCount: Int = 0
     var onToggleStar: (() -> Void)? = nil
+    var onTap: (() -> Void)? = nil
     var onLongPress: (() -> Void)? = nil
     var onPressingChanged: ((Bool) -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
@@ -79,7 +80,11 @@ struct ShortProjectInfoCardViewComponets: View {
         .padding(12)
         .background(cardBackground)
         .cornerRadius(16)
+        .contentShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.28 : 0.05), radius: colorScheme == .dark ? 10 : 5, x: 0, y: 2)
+        .onTapGesture {
+            onTap?()
+        }
         .onLongPressGesture(
             minimumDuration: 0.35,
             pressing: { isPressing in
