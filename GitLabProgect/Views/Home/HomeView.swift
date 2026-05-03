@@ -14,8 +14,11 @@ struct HomeView: View {
 
     @State private var previewProject: ProjectModel? = nil
     @State private var selectedProjectForNavigation: ProjectModel? = nil
+    @State private var isShowingFavorites = false
     @State private var searchQuery = ""
     @State private var searchDebounceWorkItem: DispatchWorkItem?
+    @State private var searchSnapshot: ProjectViewModel.ListStateSnapshot? = nil
+    @State private var isSearchSessionActive = false
     @Environment(\.colorScheme) private var colorScheme
 
     private let darkBackground = AppTheme.Palette.darkBackground
@@ -37,8 +40,44 @@ struct HomeView: View {
                         isSearch: true,
                         onSearchTextChanged: { text in
                             scheduleSearch(with: text)
+                        },
+                        onSearchCanceled: {
+                            restorePreSearchStateIfNeeded()
+                        },
+                        onSearchCleared: {
+                            restorePreSearchStateIfNeeded()
+                        },
+                        onSearchActiveChanged: { isActive in
+                            if !isActive {
+                                restorePreSearchStateIfNeeded()
+                            }
                         }
                     )
+
+                    HStack {
+                        Text("Проекты")
+                            .font(.headline)
+
+                        Spacer()
+
+                        Button {
+                            isShowingFavorites = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "star.fill")
+                                Text("Избранное (\(projetsViewModel.starredProjectIDs.count))")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.yellow.opacity(0.18))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
                     ScrollView {
                         LazyVStack {
@@ -158,6 +197,9 @@ struct HomeView: View {
                     projectViewModel: projetsViewModel
                 )
             }
+            .navigationDestination(isPresented: $isShowingFavorites) {
+                FavoritesView(projectViewModel: projetsViewModel)
+            }
         }
     }
 
@@ -169,9 +211,16 @@ struct HomeView: View {
     private func scheduleSearch(with text: String) {
         searchDebounceWorkItem?.cancel()
         searchQuery = text
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            restorePreSearchStateIfNeeded()
+            return
+        }
+
+        beginSearchSessionIfNeeded()
 
         let workItem = DispatchWorkItem {
-            guard normalizedQuery != nil else { return }
             projetsViewModel.loadProjects(
                 query: normalizedQuery,
                 isPopular: true,
@@ -182,6 +231,22 @@ struct HomeView: View {
 
         searchDebounceWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
+    }
+
+    private func beginSearchSessionIfNeeded() {
+        guard !isSearchSessionActive else { return }
+        searchSnapshot = projetsViewModel.makeListSnapshot()
+        isSearchSessionActive = true
+    }
+
+    private func restorePreSearchStateIfNeeded() {
+        searchDebounceWorkItem?.cancel()
+        searchQuery = ""
+
+        guard isSearchSessionActive, let searchSnapshot else { return }
+        projetsViewModel.restoreList(from: searchSnapshot)
+        self.searchSnapshot = nil
+        isSearchSessionActive = false
     }
 
     @MainActor

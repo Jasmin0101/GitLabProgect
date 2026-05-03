@@ -4,6 +4,9 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
     var title: String?
     var isSearch: Bool = false
     var onSearchTextChanged: ((String) -> Void)? = nil
+    var onSearchCanceled: (() -> Void)? = nil
+    var onSearchCleared: (() -> Void)? = nil
+    var onSearchActiveChanged: ((Bool) -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     // Аналог: TextEditingController + setState()
@@ -24,6 +27,14 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
 
     private func updateSearch(_ text: String) {
         onSearchTextChanged?(text)
+    }
+
+    private func deactivateSearch() {
+        isSearchActive = false
+        searchText = ""
+        updateSearch("")
+        onSearchCanceled?()
+        onSearchActiveChanged?(false)
     }
 
     var body: some View {
@@ -53,6 +64,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                             Button(action: {
                                 searchText = ""
                                 updateSearch("")
+                                onSearchCleared?()
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.gray)
@@ -69,9 +81,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                     // --- Аналог: TextButton(onPressed: () {}, child: Text("Отмена")) ---
                     Button("Отмена") {
                         withAnimation(.spring()) {
-                            isSearchActive = false
-                            searchText = ""
-                            updateSearch("")
+                            deactivateSearch()
                         }
                     }
                     .padding(.leading, 8)
@@ -89,6 +99,7 @@ struct AppBarViewComponets: View { // Аналог: StatelessWidget или State
                         Button(action: {
                             withAnimation(.spring()) {
                                 isSearchActive = true
+                                onSearchActiveChanged?(true)
                             }
                         }) {
                             // --- Аналог: Container(shape: BoxShape.circle, child: Icon(...)) ---

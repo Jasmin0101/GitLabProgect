@@ -5,8 +5,11 @@ struct ProjectDetailView: View {
     let initialProject: ProjectModel
 
     @ObservedObject var projectViewModel: ProjectViewModel
+    @StateObject private var languageViewModel = LanguageViewModel()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
+    @State private var showFavoriteActions = false
+    @State private var isShowingFavorites = false
 
     private let darkBackground = AppTheme.Palette.darkBackground
     private let darkSurface = AppTheme.Palette.darkSurface
@@ -32,6 +35,10 @@ struct ProjectDetailView: View {
         colorScheme == .dark ? .white.opacity(0.90) : .purple
     }
 
+    private var isProjectStarred: Bool {
+        projectViewModel.isStarred(projectID: projectID)
+    }
+
     var body: some View {
         ZStack {
             (colorScheme == .dark ? darkBackground : Color(.systemBackground))
@@ -41,6 +48,7 @@ struct ProjectDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     headerCard
                     factsSection
+                    languagesSection
                     topicsSection
                     extraSection
                 }
@@ -59,8 +67,25 @@ struct ProjectDetailView: View {
         .navigationTitle(project.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .navigationDestination(isPresented: $isShowingFavorites) {
+            FavoritesView(projectViewModel: projectViewModel)
+        }
+        .confirmationDialog(
+            "Проект добавлен в избранное",
+            isPresented: $showFavoriteActions,
+            titleVisibility: .visible
+        ) {
+            Button("Перейти в избранное") {
+                isShowingFavorites = true
+            }
+            Button("Удалить из избранного", role: .destructive) {
+                projectViewModel.toggleStar(for: projectID)
+            }
+            Button("Остаться на странице", role: .cancel) {}
+        }
         .task {
             projectViewModel.loadProjectDetails(projectID: projectID)
+            languageViewModel.loadLanguages(for: projectID)
         }
     }
 
@@ -118,6 +143,12 @@ struct ProjectDetailView: View {
                 statCard(title: "Forks", value: "\(project.forksCount ?? 0)", icon: "arrow.triangle.branch")
                 statCard(title: "Commits", value: commitCountText, icon: "point.3.connected.trianglepath.dotted")
             }
+
+            if isCommitCountUnavailable {
+                Text("Число коммитов недоступно для этого проекта по текущим правам API.")
+                    .font(.caption)
+                    .foregroundColor(subtitleColor)
+            }
         }
     }
 
@@ -152,6 +183,52 @@ struct ProjectDetailView: View {
         .cornerRadius(16)
     }
 
+    private var languagesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Языки")
+                .font(.headline, )
+                .foregroundColor(titleColor)
+
+            if languageViewModel.isLoading && languageViewModel.languages.isEmpty {
+                ProgressView()
+            } else if let error = languageViewModel.errorMessage, languageViewModel.languages.isEmpty {
+                HStack(spacing: 10) {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red.opacity(0.9))
+                        .lineLimit(2)
+                    Spacer()
+                    Button("Повторить") {
+                        languageViewModel.loadLanguages(for: projectID)
+                    }
+                    .font(.caption.bold())
+                }
+            } else if languageViewModel.languages.isEmpty {
+                Text("Языки пока не определены")
+                    .font(.subheadline)
+                    .foregroundColor(subtitleColor)
+            } else {
+                let sortedLanguages = languageViewModel.languages.sorted { $0.value > $1.value }
+                VStack(spacing: 8) {
+                    ForEach(sortedLanguages, id: \.key) { name, percent in
+                        HStack {
+                            Text(name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(titleColor)
+                            Spacer()
+                            Text(String(format: "%.1f%%", percent))
+                                .font(.caption.monospacedDigit())
+                                .foregroundColor(subtitleColor)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(colorScheme == .dark ? darkSurface : Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
     private var extraSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let activity = formattedLastActivity {
@@ -177,17 +254,50 @@ struct ProjectDetailView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            Button {
+                toggleFavoriteFromDetail()
+            } label: {
+                HStack {
+                    Image(systemName: isProjectStarred ? "star.fill" : "star")
+                    Text(isProjectStarred ? "Удалить из избранного" : "В избранное")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .foregroundColor(isProjectStarred ? .yellow : .white)
+                .background(
+                    isProjectStarred
+                        ? Color.yellow.opacity(0.16)
+                        : Color.blue.opacity(0.85)
+                )
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
         }
         .padding(14)
         .background(colorScheme == .dark ? darkSurface : Color(.systemBackground))
         .cornerRadius(16)
     }
 
+    private func toggleFavoriteFromDetail() {
+        let wasStarred = isProjectStarred
+        projectViewModel.toggleStar(for: projectID)
+
+        if !wasStarred {
+            showFavoriteActions = true
+        }
+    }
+
     private var commitCountText: String {
         if let commits = project.statistics?.commitCount {
             return "\(commits)"
         }
-        return "-"
+        return "Недоступно"
+    }
+
+    private var isCommitCountUnavailable: Bool {
+        project.statistics?.commitCount == nil
     }
 
     private var repositorySizeText: String {

@@ -3,6 +3,12 @@ import Foundation
 
 // ViewModel для управления логикой списка проектов
 class ProjectViewModel: ObservableObject {
+    struct ListStateSnapshot {
+        let projects: [ProjectModel]
+        let currentPage: Int
+        let canLoadMore: Bool
+        let activeQueryForPagination: String?
+    }
 
     // Сервис для работы с API (используем протокол для гибкости)
     private let projectsService: any ProjectsServicing
@@ -56,6 +62,43 @@ class ProjectViewModel: ObservableObject {
     func displayedStarCount(for project: ProjectModel) -> Int {
         let base = max(0, project.starCount ?? 0)
         return base + (isStarred(projectID: project.id) ? 1 : 0)
+    }
+
+    var favoriteProjects: [ProjectModel] {
+        var projectsByID: [Int: ProjectModel] = [:]
+        projects.forEach { projectsByID[$0.id] = $0 }
+        projectDetailsByID.values.forEach { projectsByID[$0.id] = $0 }
+
+        let favorites = starredProjectIDs.compactMap { projectsByID[$0] }
+
+        return favorites.sorted {
+            let lhsStars = displayedStarCount(for: $0)
+            let rhsStars = displayedStarCount(for: $1)
+            if lhsStars == rhsStars {
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            return lhsStars > rhsStars
+        }
+    }
+
+    func makeListSnapshot() -> ListStateSnapshot {
+        ListStateSnapshot(
+            projects: projects,
+            currentPage: currentPage,
+            canLoadMore: canLoadMore,
+            activeQueryForPagination: activeQueryForPagination
+        )
+    }
+
+    func restoreList(from snapshot: ListStateSnapshot) {
+        cancellables.forEach { $0.cancel() }
+        cancellables.removeAll()
+        isLoading = false
+
+        projects = snapshot.projects
+        currentPage = snapshot.currentPage
+        canLoadMore = snapshot.canLoadMore
+        activeQueryForPagination = snapshot.activeQueryForPagination
     }
 
     // MARK: - Project Details

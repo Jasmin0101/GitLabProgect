@@ -7,13 +7,25 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		CDA1B0012FB0000000884DE6 /* GitLabProgect/Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = GitLabProgect/Config/Base.xcconfig; sourceTree = "<group>"; };
 		CDD0F4042FA23A0900884DE6 /* GitLabProgect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GitLabProgect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CD27B5D32FA729F000BE3772 /* Exceptions for "GitLabProgect" folder in "GitLabProgect" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CDD0F4032FA23A0900884DE6 /* GitLabProgect */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CDD0F4062FA23A0900884DE6 /* GitLabProgect */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CD27B5D32FA729F000BE3772 /* Exceptions for "GitLabProgect" folder in "GitLabProgect" target */,
+			);
 			path = GitLabProgect;
 			sourceTree = "<group>";
 		};
@@ -35,7 +47,6 @@
 			children = (
 				CDD0F4062FA23A0900884DE6 /* GitLabProgect */,
 				CDD0F4052FA23A0900884DE6 /* Products */,
-				CDD0F4752FA4D61A00884DE6 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -45,14 +56,6 @@
 				CDD0F4042FA23A0900884DE6 /* GitLabProgect.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		CDD0F4752FA4D61A00884DE6 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				CDA1B0012FB0000000884DE6 /* GitLabProgect/Config/Base.xcconfig */,
-			);
-			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -137,6 +140,8 @@
 /* Begin XCBuildConfiguration section */
 		CDD0F40D2FA23A0B00884DE6 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = CDD0F4062FA23A0900884DE6 /* GitLabProgect */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -201,6 +206,8 @@
 		};
 		CDD0F40E2FA23A0B00884DE6 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = CDD0F4062FA23A0900884DE6 /* GitLabProgect */;
+			baseConfigurationReferenceRelativePath = Config/Secrets.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -258,7 +265,6 @@
 		};
 		CDD0F4102FA23A0B00884DE6 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CDA1B0012FB0000000884DE6 /* GitLabProgect/Config/Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -267,6 +273,7 @@
 				DEVELOPMENT_TEAM = HQ7X9X36C7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GitLabProgect/Info.plist;
 				INFOPLIST_KEY_GITLAB_TOKEN = "$(GITLAB_TOKEN)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -292,7 +299,6 @@
 		};
 		CDD0F4112FA23A0B00884DE6 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CDA1B0012FB0000000884DE6 /* GitLabProgect/Config/Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -301,6 +307,7 @@
 				DEVELOPMENT_TEAM = HQ7X9X36C7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GitLabProgect/Info.plist;
 				INFOPLIST_KEY_GITLAB_TOKEN = "$(GITLAB_TOKEN)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
